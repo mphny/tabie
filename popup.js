@@ -1579,6 +1579,231 @@ async function moveToNewWindow(ids) {
   toast(`Moved ${plural(ids.length, "tab")} to a new window`);
 }
 
+// ---------- tab groups ----------
+
+let pendingGroupTabs = [];
+
+function showGroupDialog(ids) {
+  if (!ids.length) return;
+  pendingGroupTabs = ids;
+  $("#group-name-input").value = "";
+  $("#group-color-select").value = "blue";
+  $("#group-dialog").hidden = false;
+  $("#group-name-input").focus();
+}
+
+function hideGroupDialog() {
+  $("#group-dialog").hidden = true;
+  pendingGroupTabs = [];
+  queryEl.focus();
+}
+
+async function createGroup() {
+  const name = $("#group-name-input").value.trim();
+  const color = $("#group-color-select").value;
+  const ids = pendingGroupTabs;
+
+  if (!ids.length) {
+    hideGroupDialog();
+    return;
+  }
+
+  // Check if tabGroups API is available
+  if (!api.tabGroups) {
+    hideGroupDialog();
+    toast("Tab groups aren't available in this browser");
+    return;
+  }
+
+  try {
+    // Group tabs together using tabs.group
+    const group = await api.tabs.group({ tabIds: ids });
+    if (group) {
+      // Update the group with title and color
+      await api.tabGroups.update(group, { title: name || "New Group", color });
+      state.selected.clear();
+      await refresh();
+      toast(`Created group "${name || "New Group"}" with ${plural(ids.length, "tab")}`);
+    }
+  } catch (err) {
+    console.error("Failed to create group:", err);
+    toast("Couldn't create the group");
+  }
+
+  hideGroupDialog();
+}
+
+$("#group-cancel").addEventListener("click", hideGroupDialog);
+$("#group-create").addEventListener("click", createGroup);
+$("#group-name-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    createGroup();
+  } else if (e.key === "Escape") {
+    hideGroupDialog();
+  }
+});
+$("#group-dialog").addEventListener("click", (e) => {
+  if (e.target === $("#group-dialog")) hideGroupDialog();
+});
+
+// ---------- export tab groups ----------
+
+let exportGroups = [];
+
+async function showExportDialog() {
+  if (!api.tabGroups) {
+    toast("Tab groups aren't available in this browser");
+    return;
+  }
+
+  try {
+    const groups = await api.tabGroups.query({});
+    if (!groups || groups.length === 0) {
+      toast("No tab groups to export");
+      return;
+    }
+
+    exportGroups = groups;
+    const listEl = $("#export-groups-list");
+    listEl.innerHTML = groups.map(g => {
+      const tabs = state.tabs.filter(t => t.groupId === g.id);
+      return `
+        <label class="export-group-item">
+          <input type="checkbox" data-group-id="${g.id}" checked>
+          <span class="export-group-color" style="background: ${g.color}"></span>
+          <span class="export-group-name">${escapeHtml(g.title || "Untitled")}</span>
+          <span class="export-group-count">${tabs.length} tabs</span>
+        </label>
+      `;
+    }).join("");
+
+    $("#export-dialog").hidden = false;
+  } catch (err) {
+    console.error("Failed to load tab groups:", err);
+    toast("Couldn't load tab groups");
+  }
+}
+
+function hideExportDialog() {
+  $("#export-dialog").hidden = true;
+  queryEl.focus();
+}
+
+// Color hex mapping for Chrome tab groups
+const COLOR_HEX = {
+  grey: "#9AA0A6",
+  blue: "#8AB4F8",
+  red: "#F28B82",
+  yellow: "#FDD663",
+  green: "#81C995",
+  pink: "#FF8BCB",
+  purple: "#C58AF9",
+  cyan: "#78D9EC",
+  orange: "#FBBC04"
+};
+
+async function exportTabGroups() {
+  const includePreviews = $("#export-include-previews").checked;
+  const selectedGroupIds = [...document.querySelectorAll("#export-groups-list input:checked")]
+    .map(el => parseInt(el.dataset.groupId));
+
+  if (selectedGroupIds.length === 0) {
+    toast("Please select at least one group");
+    return;
+  }
+
+  const selectedGroups = exportGroups.filter(g => selectedGroupIds.includes(g.id));
+
+  // Build export data
+  const exportData = {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    groups: []
+  };
+
+  const previewImages = [];
+
+  for (const group of selectedGroups) {
+    const tabs = state.tabs.filter(t => t.groupId === group.id);
+    const groupTabs = [];
+
+    for (const tab of tabs) {
+      const tabData = {
+        url: tab.url,
+        title: tab.title,
+        pinned: tab.pinned,
+        favIconUrl: tab.favIconUrl
+      };
+
+      // Add preview if available and requested
+      if (includePreviews) {
+        const previewKey = thumbKey(tab.url);
+        const preview = state.thumbs[previewKey];
+        if (preview && preview.img) {
+          // Extract base64 data without the data URL prefix
+          const base64Data = preview.img.replace(/^data:image\/jpeg;base64,/, "");
+          const filename = `${group.id}_${tab.id}.jpg`;
+          tabData.previewFile = filename;
+          previewImages.push({
+            filename,
+            data: base64Data
+          });
+        }
+      }
+
+      groupTabs.push(tabData);
+    }
+
+    exportData.groups.push({
+      id: group.id,
+      title: group.title,
+      color: group.color,
+      colorHex: COLOR_HEX[group.color] || "#9AA0A6",
+      collapsed: group.collapsed,
+      tabs: groupTabs
+    });
+  }
+
+  // Download JSON file
+  const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  const jsonUrl = URL.createObjectURL(jsonBlob);
+  const timestamp = new Date().toISOString().slice(0, 10);
+  await api.downloads.download({
+    url: jsonUrl,
+    filename: `tabie-groups-${timestamp}.json`,
+    saveAs: true
+  });
+  URL.revokeObjectURL(jsonUrl);
+
+  // Download ZIP with previews if requested
+  if (includePreviews && previewImages.length > 0) {
+    // Create a simple text file with all previews (since we can't use JSZip without external library)
+    // Each preview is a base64-encoded JPEG
+    const previewsData = previewImages.map(p => ({
+      filename: p.filename,
+      data: p.data
+    }));
+    const previewsBlob = new Blob([JSON.stringify(previewsData, null, 2)], { type: "application/json" });
+    const previewsUrl = URL.createObjectURL(previewsBlob);
+    await api.downloads.download({
+      url: previewsUrl,
+      filename: `tabie-previews-${timestamp}.json`,
+      saveAs: true
+    });
+    URL.revokeObjectURL(previewsUrl);
+  }
+
+  hideExportDialog();
+  toast(`Exported ${plural(selectedGroups.length, "group")} with ${includePreviews ? "previews" : "no previews"}`);
+}
+
+$("#export-cancel").addEventListener("click", hideExportDialog);
+$("#export-do").addEventListener("click", exportTabGroups);
+$("#export-dialog").addEventListener("click", (e) => {
+  if (e.target === $("#export-dialog")) hideExportDialog();
+});
+
 function searchWeb(query) {
   const q = query.trim();
   if (!q) return;
@@ -2248,6 +2473,8 @@ $("#selection-bar").addEventListener("click", async (e) => {
     toast(`Closed ${plural(ids.length, "tab")}`);
   } else if (action === "window") {
     await moveToNewWindow(ids);
+  } else if (action === "group") {
+    showGroupDialog(ids);
   } else if (action === "all") {
     for (const item of state.items) if (item.kind === "tab") state.selected.add(item.id);
     render();
@@ -2261,6 +2488,7 @@ $("#clean").addEventListener("change", (e) => superClean(e.target.value));
 $("#act-sleep").addEventListener("click", sleepInactive);
 $("#act-sort").addEventListener("click", sortBySite);
 $("#act-merge").addEventListener("click", () => mergeWindows());
+$("#act-export").addEventListener("click", showExportDialog);
 
 // Open the side panel (Chrome/Edge) or sidebar (Firefox). Must be called
 // synchronously from the click to count as a user gesture.

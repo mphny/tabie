@@ -16,7 +16,8 @@
     "downloads.open",
     "bookmarks",
     "favicon",
-    "history"
+    "history",
+    "tabGroups"
   ],
   "host_permissions": [
     "<all_urls>"

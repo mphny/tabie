@@ -121,6 +121,7 @@
     <span id="selection-count"></span>
     <button data-sel="all" class="push-btn">Select All</button>
     <button data-sel="window" class="push-btn">Move to New Window</button>
+    <button data-sel="group" class="push-btn">Create Group</button>
     <button data-sel="close" class="push-btn destructive">Close Tabs</button>
     <button data-sel="clear" class="primary-btn">Done</button>
   </div>
@@ -158,6 +159,7 @@
       <button id="act-sleep" class="action-btn" title="Unload tabs you haven't used in 30 minutes. They reload when you open them."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 1.5a6.5 6.5 0 1 0 5 9.9 5.5 5.5 0 0 1-5-9.9z"/></svg><span>Smart Sleep</span></button>
       <button id="act-sort" class="action-btn" title="Reorder tabs in each window by website"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h8v1.6H2zm0 4.2h6v1.6H2zm0 4.2h4V13H2zm10.25-8.9h1.5v8.1l1.45-1.45 1.05 1.05L13 13.5l-3.25-3.3 1.05-1.05 1.45 1.45z"/></svg><span>Magic Tabs</span></button>
       <button id="act-merge" class="action-btn" title="Move every tab into this window"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h9.5A1.5 1.5 0 0 1 15 3v7a1.5 1.5 0 0 1-1.5 1.5H12V13a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 1 13V6a1.5 1.5 0 0 1 1.5-1.5h1V3A1.5 1.5 0 0 1 4 1.5zm0 3h6.5A1.5 1.5 0 0 1 12 6v4h1.5V3H4z"/></svg><span>Merge Windows</span></button>
+      <button id="act-export" class="action-btn" title="Export tab groups to file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 1.5v10a5 5 0 0 0 0-10z"/></svg><span>Export Groups</span></button>
     </div>
     <div class="status-end">
       <button id="show-shortcuts" class="shortcut-hint" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
@@ -206,6 +208,12 @@
           </dl>
         </section>
         <section>
+          <h3>Selection Bar</h3>
+          <dl>
+            <dt>Select tabs</dt><dd>Then choose: Move to New Window, Create Group, or Close Tabs</dd>
+          </dl>
+        </section>
+        <section>
           <h3>Panels</h3>
           <dl>
             <dt><kbd>⌥</kbd><kbd>H</kbd></dt><dd>History and recently closed</dd>
@@ -233,6 +241,50 @@
       <div class="confirm-buttons">
         <button id="confirm-cancel" class="push-btn">Cancel</button>
         <button id="confirm-ok" class="primary-btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="group-dialog" class="modal-backdrop confirm-backdrop" hidden>
+    <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="group-dialog-title">
+      <h2 id="group-dialog-title">Create Tab Group</h2>
+      <div class="group-form">
+        <label for="group-name-input">Group name</label>
+        <input id="group-name-input" type="text" placeholder="e.g., Research, Shopping" autocomplete="off">
+        <label for="group-color-select">Color</label>
+        <select id="group-color-select" aria-label="Group color">
+          <option value="grey">Grey</option>
+          <option value="blue">Blue</option>
+          <option value="red">Red</option>
+          <option value="yellow">Yellow</option>
+          <option value="green">Green</option>
+          <option value="pink">Pink</option>
+          <option value="purple">Purple</option>
+          <option value="cyan">Cyan</option>
+          <option value="orange">Orange</option>
+        </select>
+      </div>
+      <div class="confirm-buttons">
+        <button id="group-cancel" class="push-btn">Cancel</button>
+        <button id="group-create" class="primary-btn">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="export-dialog" class="modal-backdrop confirm-backdrop" hidden>
+    <div class="confirm export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-dialog-title">
+      <h2 id="export-dialog-title">Export Tab Groups</h2>
+      <div class="export-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="export-include-previews" checked>
+          <span>Include tab previews</span>
+        </label>
+        <p class="export-note">Previews will be saved as a separate .zip file with images.</p>
+      </div>
+      <div id="export-groups-list" class="export-groups-list"></div>
+      <div class="confirm-buttons">
+        <button id="export-cancel" class="push-btn">Cancel</button>
+        <button id="export-do" class="primary-btn">Export</button>
       </div>
     </div>
   </div>
