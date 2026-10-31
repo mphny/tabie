@@ -95,12 +95,9 @@
     <aside id="stars" class="sidebar right sheet sheet-right" aria-hidden="true" inert>
       <div class="sidebar-head">
         <h2>Shortcuts</h2>
-        <div class="sidebar-head-actions">
-          <button id="import-groups" class="link small-link" title="Import tab groups">+ Import</button>
-          <button id="close-stars" class="tb-btn icon small" aria-label="Close">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
-          </button>
-        </div>
+        <button id="close-stars" class="tb-btn icon small" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+        </button>
       </div>
       <div id="stars-list" class="sidebar-list"></div>
     </aside>
@@ -163,6 +160,7 @@
       <button id="act-sort" class="action-btn" title="Reorder tabs in each window by website"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h8v1.6H2zm0 4.2h6v1.6H2zm0 4.2h4V13H2zm10.25-8.9h1.5v8.1l1.45-1.45 1.05 1.05L13 13.5l-3.25-3.3 1.05-1.05 1.45 1.45z"/></svg><span>Magic Tabs</span></button>
       <button id="act-merge" class="action-btn" title="Move every tab into this window"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h9.5A1.5 1.5 0 0 1 15 3v7a1.5 1.5 0 0 1-1.5 1.5H12V13a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 1 13V6a1.5 1.5 0 0 1 1.5-1.5h1V3A1.5 1.5 0 0 1 4 1.5zm0 3h6.5A1.5 1.5 0 0 1 12 6v4h1.5V3H4z"/></svg><span>Merge Windows</span></button>
       <button id="act-export" class="action-btn" title="Export tab groups to file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 1.5v10a5 5 0 0 0 0-10z"/></svg><span>Export Groups</span></button>
+      <button id="act-import" class="action-btn" title="Import tab groups from file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 5 9.9 5.5 5.5 0 0 1-5-9.9zm0 1.5v10a5 5 0 0 0 0-10z"/></svg><span>Import Groups</span></button>
     </div>
     <div class="status-end">
       <button id="show-shortcuts" class="shortcut-hint" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
@@ -249,7 +247,7 @@
   </div>
 
   <div id="group-dialog" class="modal-backdrop confirm-backdrop" hidden>
-    <div class="confirm" role="dialog" aria-modal="true" aria-labelledby="group-dialog-title">
+    <div class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="group-dialog-title">
       <h2 id="group-dialog-title">Create Tab Group</h2>
       <div class="group-form">
         <label for="group-name-input">Group name</label>

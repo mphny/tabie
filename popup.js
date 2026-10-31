@@ -1948,7 +1948,7 @@ async function importToBrowser() {
   }
 }
 
-$("#import-groups").addEventListener("click", openImportFilePicker);
+$("#act-import").addEventListener("click", openImportFilePicker);
 $("#close-import-view").addEventListener("click", hideImportView);
 $("#import-view-cancel").addEventListener("click", hideImportView);
 $("#import-view-do").addEventListener("click", importToBrowser);
