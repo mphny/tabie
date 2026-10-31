@@ -1719,10 +1719,10 @@ async function exportTabGroups() {
   const exportData = {
     version: "1.0",
     exportedAt: new Date().toISOString(),
-    groups: []
+    includePreviews: includePreviews,
+    groups: [],
+    previews: {}
   };
-
-  const previewImages = [];
 
   for (const group of selectedGroups) {
     const tabs = state.tabs.filter(t => t.groupId === group.id);
@@ -1736,19 +1736,22 @@ async function exportTabGroups() {
         favIconUrl: tab.favIconUrl
       };
 
-      // Add preview if available and requested
+      // Add preview filename if available and requested
       if (includePreviews) {
         const previewKey = thumbKey(tab.url);
         const preview = state.thumbs[previewKey];
         if (preview && preview.img) {
-          // Extract base64 data without the data URL prefix
-          const base64Data = preview.img.replace(/^data:image\/jpeg;base64,/, "");
-          const filename = `${group.id}_${tab.id}.jpg`;
+          // Generate a unique filename based on tab URL hash
+          let hash = 0;
+          for (let i = 0; i < tab.url.length; i++) {
+            hash = ((hash << 5) - hash) + tab.url.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+          }
+          const filename = `preview_${Math.abs(hash)}.jpg`;
           tabData.previewFile = filename;
-          previewImages.push({
-            filename,
-            data: base64Data
-          });
+
+          // Store the actual preview data in the previews block
+          exportData.previews[filename] = preview.img;
         }
       }
 
@@ -1765,43 +1768,192 @@ async function exportTabGroups() {
     });
   }
 
-  // Download JSON file
+  // If no previews were included, remove the previews block
+  if (!includePreviews || Object.keys(exportData.previews).length === 0) {
+    delete exportData.previews;
+    exportData.includePreviews = false;
+  }
+
+  // Generate filename: YYYYMMDD_(first 5 words of first tab title).json
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+  // Get first tab from first group to extract title words
+  let titleWords = "tabie-groups";
+  if (selectedGroups.length > 0 && exportData.groups.length > 0) {
+    const firstGroup = exportData.groups[0];
+    if (firstGroup.tabs && firstGroup.tabs.length > 0) {
+      const firstTabTitle = firstGroup.tabs[0].title || "";
+      // Extract first 5 words, clean them, and join with underscores
+      const words = firstTabTitle
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .slice(0, 5)
+        .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
+        .filter(word => word.length > 0);
+
+      if (words.length > 0) {
+        titleWords = words.join('_');
+      }
+    }
+  }
+
+  const filename = `${dateStr}_${titleWords}.json`;
+
+  // Download single JSON file
   const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const jsonUrl = URL.createObjectURL(jsonBlob);
-  const timestamp = new Date().toISOString().slice(0, 10);
   await api.downloads.download({
     url: jsonUrl,
-    filename: `tabie-groups-${timestamp}.json`,
+    filename: filename,
     saveAs: true
   });
   URL.revokeObjectURL(jsonUrl);
 
-  // Download ZIP with previews if requested
-  if (includePreviews && previewImages.length > 0) {
-    // Create a simple text file with all previews (since we can't use JSZip without external library)
-    // Each preview is a base64-encoded JPEG
-    const previewsData = previewImages.map(p => ({
-      filename: p.filename,
-      data: p.data
-    }));
-    const previewsBlob = new Blob([JSON.stringify(previewsData, null, 2)], { type: "application/json" });
-    const previewsUrl = URL.createObjectURL(previewsBlob);
-    await api.downloads.download({
-      url: previewsUrl,
-      filename: `tabie-previews-${timestamp}.json`,
-      saveAs: true
-    });
-    URL.revokeObjectURL(previewsUrl);
-  }
-
   hideExportDialog();
-  toast(`Exported ${plural(selectedGroups.length, "group")} with ${includePreviews ? "previews" : "no previews"}`);
+  toast(`Exported ${plural(selectedGroups.length, "group")} to a single file`);
 }
 
 $("#export-cancel").addEventListener("click", hideExportDialog);
 $("#export-do").addEventListener("click", exportTabGroups);
 $("#export-dialog").addEventListener("click", (e) => {
   if (e.target === $("#export-dialog")) hideExportDialog();
+});
+
+// ---------- import tab groups view ----------
+
+let importedData = null;
+
+function openImportFilePicker() {
+  $("#import-file-input").click();
+}
+
+$("#import-file-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    // Validate the file structure
+    if (!data.version || !data.groups || !Array.isArray(data.groups)) {
+      toast("Invalid export file format");
+      return;
+    }
+
+    importedData = data;
+    renderImportView();
+    $("#import-view-dialog").hidden = false;
+  } catch (err) {
+    console.error("Failed to parse import file:", err);
+    toast("Couldn't read the export file");
+  }
+
+  // Reset the input so the same file can be selected again
+  e.target.value = "";
+});
+
+function hideImportView() {
+  $("#import-view-dialog").hidden = true;
+  importedData = null;
+  queryEl.focus();
+}
+
+function renderImportView() {
+  if (!importedData) return;
+
+  const displayEl = $("#import-groups-display");
+  let html = "";
+
+  for (const group of importedData.groups) {
+    const groupTabs = group.tabs || [];
+    const groupHtml = `
+      <div class="import-group-block">
+        <div class="import-group-header">
+          <span class="import-group-color" style="background: ${group.colorHex || "#9AA0A6"}"></span>
+          <span class="import-group-title">${escapeHtml(group.title || "Untitled")}</span>
+          <span style="font-size: 11px; color: var(--secondary); margin-left: auto;">${groupTabs.length} tabs</span>
+        </div>
+        <div class="import-group-tabs">
+          ${groupTabs.map(tab => {
+            const previewData = tab.previewFile && importedData.previews ? importedData.previews[tab.previewFile] : null;
+            const previewHtml = previewData
+              ? `<img src="${previewData}" alt="">`
+              : `<span class="placeholder">No preview</span>`;
+
+            return `
+              <div class="import-tab-item" data-url="${escapeHtml(tab.url)}">
+                <div class="import-tab-preview">${previewHtml}</div>
+                <div class="import-tab-title" title="${escapeHtml(tab.title)}">${escapeHtml(tab.title)}</div>
+                <div class="import-tab-url" title="${escapeHtml(tab.url)}">${escapeHtml(tab.url)}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+    html += groupHtml;
+  }
+
+  displayEl.innerHTML = html;
+}
+
+async function importToBrowser() {
+  if (!importedData || !api.tabGroups) {
+    toast("Tab groups aren't available in this browser");
+    return;
+  }
+
+  try {
+    let totalTabs = 0;
+    let totalGroups = 0;
+
+    for (const group of importedData.groups) {
+      const tabs = group.tabs || [];
+      if (tabs.length === 0) continue;
+
+      // Create tabs for this group
+      const createdTabs = [];
+      for (const tab of tabs) {
+        try {
+          const newTab = await api.tabs.create({ url: tab.url, active: false });
+          createdTabs.push(newTab.id);
+          totalTabs++;
+        } catch (err) {
+          console.error("Failed to create tab:", tab.url, err);
+        }
+      }
+
+      if (createdTabs.length > 0) {
+        // Group the created tabs
+        const groupId = await api.tabs.group({ tabIds: createdTabs });
+        if (groupId) {
+          // Set group title and color
+          await api.tabGroups.update(groupId, {
+            title: group.title || "Imported Group",
+            color: group.color || "grey"
+          });
+          totalGroups++;
+        }
+      }
+    }
+
+    hideImportView();
+    toast(`Imported ${totalGroups} group(s) with ${totalTabs} tab(s)`);
+    await refresh();
+  } catch (err) {
+    console.error("Failed to import:", err);
+    toast("Couldn't import the groups");
+  }
+}
+
+$("#import-groups").addEventListener("click", openImportFilePicker);
+$("#close-import-view").addEventListener("click", hideImportView);
+$("#import-view-cancel").addEventListener("click", hideImportView);
+$("#import-view-do").addEventListener("click", importToBrowser);
+$("#import-view-dialog").addEventListener("click", (e) => {
+  if (e.target === $("#import-view-dialog")) hideImportView();
 });
 
 function searchWeb(query) {

@@ -1486,6 +1486,103 @@ body.selecting .hover-actions { display: none; }
   color: var(--secondary);
 }
 
+/* ---------- import view dialog ---------- */
+.import-view-dialog {
+  width: min(600px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.import-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.import-view-header h2 {
+  margin: 0;
+}
+.import-groups-display {
+  max-height: 500px;
+  overflow-y: auto;
+  margin: 12px 0;
+}
+.import-group-block {
+  margin-bottom: 20px;
+  border: 0.5px solid var(--hairline);
+  border-radius: 8px;
+  padding: 12px;
+}
+.import-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 0.5px solid var(--hairline);
+}
+.import-group-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.import-group-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.import-group-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.import-tab-item {
+  border: 0.5px solid var(--hairline);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.import-tab-item:hover {
+  background: var(--control-fill);
+}
+.import-tab-preview {
+  width: 100%;
+  height: 120px;
+  background: var(--control-fill);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.import-tab-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.import-tab-preview .placeholder {
+  font-size: 11px;
+  color: var(--secondary);
+  text-align: center;
+  padding: 8px;
+}
+.import-tab-title {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.import-tab-url {
+  font-size: 10px;
+  color: var(--secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------- full-height sheets over the whole window ----------
    Fixed to the viewport so they cover the navbar and footer, with the
    backdrop dimming everything behind them (including the navbar). */

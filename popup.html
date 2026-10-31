@@ -95,9 +95,12 @@
     <aside id="stars" class="sidebar right sheet sheet-right" aria-hidden="true" inert>
       <div class="sidebar-head">
         <h2>Shortcuts</h2>
-        <button id="close-stars" class="tb-btn icon small" aria-label="Close">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
-        </button>
+        <div class="sidebar-head-actions">
+          <button id="import-groups" class="link small-link" title="Import tab groups">+ Import</button>
+          <button id="close-stars" class="tb-btn icon small" aria-label="Close">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+          </button>
+        </div>
       </div>
       <div id="stars-list" class="sidebar-list"></div>
     </aside>
@@ -277,14 +280,32 @@
       <div class="export-options">
         <label class="checkbox-label">
           <input type="checkbox" id="export-include-previews" checked>
-          <span>Include tab previews</span>
+          <span>Include tab previews in export</span>
         </label>
-        <p class="export-note">Previews will be saved as a separate .zip file with images.</p>
+        <p class="export-note">All data will be saved to a single JSON file.</p>
       </div>
       <div id="export-groups-list" class="export-groups-list"></div>
       <div class="confirm-buttons">
         <button id="export-cancel" class="push-btn">Cancel</button>
         <button id="export-do" class="primary-btn">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="import-file-input" accept=".json" hidden>
+
+  <div id="import-view-dialog" class="modal-backdrop confirm-backdrop" hidden>
+    <div class="confirm import-view-dialog" role="dialog" aria-modal="true" aria-labelledby="import-view-title">
+      <div class="import-view-header">
+        <h2 id="import-view-title">Imported Groups</h2>
+        <button id="close-import-view" class="tb-btn icon small" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+        </button>
+      </div>
+      <div id="import-groups-display" class="import-groups-display"></div>
+      <div class="confirm-buttons">
+        <button id="import-view-cancel" class="push-btn">Close</button>
+        <button id="import-view-do" class="primary-btn">Import to Browser</button>
       </div>
     </div>
   </div>
