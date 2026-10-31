@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tabie</title>
+  <link rel="icon" href="icons/icon32.png">
+  <script src="boot.js"></script>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="onboarding.css"> <!-- onboarding tour: optional, see onboarding.js -->
+</head>
+<body>
+  <header class="toolbar">
+    <div class="tb-group">
+      <button id="toggle-history" class="tb-btn icon" aria-pressed="false" title="Tabie · History (⌥H)">
+        <svg viewBox="0 0 64 64" aria-hidden="true" class="tabie-mark">
+          <rect x="1.5" y="1.5" width="61" height="61" rx="15" class="mark-tile"/>
+          <rect x="15" y="15" width="15" height="15" rx="2.5"/>
+          <rect x="34" y="15" width="15" height="15" rx="2.5"/>
+          <rect x="15" y="34" width="15" height="15" rx="2.5"/>
+          <rect x="34" y="34" width="15" height="15" rx="2.5"/>
+        </svg>
+      </button>
+    </div>
+
+
+    <div class="search">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.96 12.05l4.25 4.24-1.42 1.42-4.24-4.25A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg>
+      <input id="q" type="search" placeholder="Browse Anything" autocomplete="off" spellcheck="false" autofocus>
+      <div class="dropdown engine-dropdown" data-menu-title="Default Search Engine" data-icon-only>
+        <svg class="lucide" viewBox="0 0 24 24" aria-hidden="true"><!-- Lucide "settings" icon, ISC licence (lucide.dev) --><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <select id="engine" aria-label="Default search engine">
+          <option value="google">Google</option>
+          <option value="bing">Bing</option>
+          <option value="duckduckgo">DuckDuckGo</option>
+          <option value="chatgpt">ChatGPT</option>
+          <option value="gemini">Gemini</option>
+        </select>
+      </div>
+      <div id="suggest" class="suggest" role="listbox" aria-label="Search suggestions" hidden></div>
+    </div>
+
+    <div class="tb-group">
+
+      <button id="new-tab" class="tb-btn icon" title="New tab" aria-label="New tab">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.25 2.5h1.5v4.75h4.75v1.5H8.75v4.75h-1.5V8.75H2.5v-1.5h4.75z"/></svg>
+      </button>
+
+      <button id="toggle-downloads" class="tb-btn icon" aria-pressed="false" title="Downloads (⌥D)" aria-label="Downloads">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.25 1.5h1.5v7.4l2.6-2.6 1.05 1.05L8 11.75 3.6 7.35 4.65 6.3l2.6 2.6zM2 12.5h1.5V14h9v-1.5H14v3H2z"/></svg>
+        <span id="downloads-active" class="dot-count" hidden></span>
+      </button>
+      <button id="starred" class="tb-btn" aria-pressed="false" title="Shortcuts" aria-label="Shortcuts">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m8 1.3 2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.4 1-4.6L1.3 6.1 6 5.6z"/></svg>
+        <span id="starred-count" class="count-pill">0</span>
+      </button>
+
+
+
+      <div class="segmented" role="radiogroup" aria-label="Layout">
+        <button data-layout="cards" role="radio" title="Cards" aria-label="Cards">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5v5H2zm7 0h5v5H9zM2 9h5v5H2zm7 0h5v5H9z"/></svg>
+        </button>
+        <button data-layout="list" role="radio" title="List" aria-label="List">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h12v1.75H2zm0 4.1h12v1.75H2zm0 4.15h12V13H2z"/></svg>
+        </button>
+      </div>
+
+      <span class="tb-sep"></span>
+
+      <button id="open-panel" class="tb-btn icon" title="Open in side panel" aria-label="Open in side panel" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2h11A1.5 1.5 0 0 1 15 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9A1.5 1.5 0 0 1 2.5 2zm0 1.5v9H9v-9zm8 0v9h3v-9z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <div id="sheet-backdrop" class="sheet-backdrop"></div>
+    <aside id="history" class="sidebar left sheet" aria-hidden="true" inert>
+      <div class="sidebar-head">
+        <h2>History</h2>
+        <button id="close-history" class="tb-btn icon small" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+        </button>
+      </div>
+      <div class="sheet-tabs segmented" role="tablist" aria-label="History view">
+        <button data-history-tab="history" role="tab">History</button>
+        <button data-history-tab="closed" role="tab">Recently Closed</button>
+      </div>
+      <div id="history-list" class="sidebar-list"></div>
+    </aside>
+
+    <main id="list" class="content" tabindex="-1"></main>
+
+    <aside id="stars" class="sidebar right sheet sheet-right" aria-hidden="true" inert>
+      <div class="sidebar-head">
+        <h2>Shortcuts</h2>
+        <button id="close-stars" class="tb-btn icon small" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+        </button>
+      </div>
+      <div id="stars-list" class="sidebar-list"></div>
+    </aside>
+
+    <aside id="downloads" class="sidebar right sheet sheet-right" aria-hidden="true" inert>
+      <div class="sidebar-head">
+        <h2>Downloads</h2>
+        <div class="sidebar-head-actions">
+          <button id="open-downloads-folder" class="link small-link" title="Open your Downloads folder">Show Folder</button>
+          <button id="close-downloads" class="tb-btn icon small" aria-label="Close">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="downloads-list" class="sidebar-list"></div>
+    </aside>
+
+  </div>
+
+  <div id="selection-bar" class="selection-bar" aria-hidden="true" inert>
+    <span id="selection-count"></span>
+    <button data-sel="all" class="push-btn">Select All</button>
+    <button data-sel="window" class="push-btn">Move to New Window</button>
+    <button data-sel="close" class="push-btn destructive">Close Tabs</button>
+    <button data-sel="clear" class="primary-btn">Done</button>
+  </div>
+
+  <footer class="statusbar">
+    <div class="actions">
+      <div class="dropdown dropup" data-menu-title="Sort By">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 2 7.5 5.5H5.25V14h-1.5V5.5H1.5zm7 12-3-3.5h2.25V2h1.5v8.5h2.25z"/></svg>
+        <select id="sort" aria-label="Sort">
+          <option value="recent">Recent</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="az">A–Z</option>
+        </select>
+      </div>
+      <div class="dropdown dropup" data-menu-title="Group By">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h5v5H2zm7 0h5v5H9zm-7 6h5v5H2zm7 0h5v5H9z" opacity=".9"/></svg>
+        <select id="group" aria-label="Group">
+          <option value="none">By none</option>
+          <option value="site">By site</option>
+        </select>
+      </div>
+      <span class="tb-sep"></span>
+      <div class="dropdown dropup" data-action data-label="Super Clean" data-menu-title="Super Clean">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.3.8a1.1 1.1 0 0 1 1.6 1.6L10.6 6.7l.6.6a1 1 0 0 1 0 1.4l-.6.6-4.4-4.4.6-.6a1 1 0 0 1 1.4 0l.6.6zM5.5 5.6l4.5 4.5-.5 2a2.5 2.5 0 0 1-1.1 1.5L4.2 16l1.6-2.9-.7-.7-2.5 1.8.7-2.1-.9-.9-2.2.7L2 9.4a2.6 2.6 0 0 1 1.5-1.2z"/></svg>
+        <select id="clean" aria-label="Super Clean">
+          <option value="1">Clean 1h ago</option>
+          <option value="2">Clean 2h ago</option>
+          <option value="4">Clean 4h ago</option>
+          <option value="6">Clean 6h ago</option>
+          <option value="dupes" data-sep>Duplicates</option>
+          <option value="all" data-danger>Clean All</option>
+        </select>
+      </div>
+      <button id="act-sleep" class="action-btn" title="Unload tabs you haven't used in 30 minutes. They reload when you open them."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 1.5a6.5 6.5 0 1 0 5 9.9 5.5 5.5 0 0 1-5-9.9z"/></svg><span>Smart Sleep</span></button>
+      <button id="act-sort" class="action-btn" title="Reorder tabs in each window by website"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3h8v1.6H2zm0 4.2h6v1.6H2zm0 4.2h4V13H2zm10.25-8.9h1.5v8.1l1.45-1.45 1.05 1.05L13 13.5l-3.25-3.3 1.05-1.05 1.45 1.45z"/></svg><span>Magic Tabs</span></button>
+      <button id="act-merge" class="action-btn" title="Move every tab into this window"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h9.5A1.5 1.5 0 0 1 15 3v7a1.5 1.5 0 0 1-1.5 1.5H12V13a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 1 13V6a1.5 1.5 0 0 1 1.5-1.5h1V3A1.5 1.5 0 0 1 4 1.5zm0 3h6.5A1.5 1.5 0 0 1 12 6v4h1.5V3H4z"/></svg><span>Merge Windows</span></button>
+    </div>
+    <div class="status-end">
+      <button id="show-shortcuts" class="shortcut-hint" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.5h13A1.5 1.5 0 0 1 16 5v6a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 11V5a1.5 1.5 0 0 1 1.5-1.5zM2 5.5v1.5h1.5V5.5zm2.5 0v1.5H6V5.5zm2.5 0v1.5h1.5V5.5zm2.5 0v1.5H11V5.5zm2.5 0v1.5H14V5.5zM2 8v1.5h1.5V8zm2.5 0v1.5H6V8zm2.5 0v1.5h1.5V8zm2.5 0v1.5H11V8zm2.5 0v1.5H14V8zM4 10.5V12h8v-1.5z"/></svg>
+        <kbd id="shortcut-key">⌘K</kbd>
+      </button>
+    <div class="segmented theme-toggle" role="radiogroup" aria-label="Appearance">
+        <button data-theme-choice="auto" role="radio" title="Match system appearance" aria-label="Auto">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zm0 1.5v10a5 5 0 0 0 0-10z"/></svg>
+        </button>
+        <button data-theme-choice="light" role="radio" title="Light" aria-label="Light">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM7.3 0h1.4v2.5H7.3zm0 13.5h1.4V16H7.3zM0 7.3h2.5v1.4H0zm13.5 0H16v1.4h-2.5zM2.1 3.1l1-1 1.8 1.8-1 1zm9 9 1-1 1.8 1.8-1 1zM2.1 12.9l1.8-1.8 1 1-1.8 1.8zm9-9 1.8-1.8 1 1-1.8 1.8z"/></svg>
+        </button>
+        <button data-theme-choice="dark" role="radio" title="Dark" aria-label="Dark">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M9.5 1.5a6.5 6.5 0 1 0 5 9.9 5.5 5.5 0 0 1-5-9.9z"/></svg>
+        </button>
+      </div>
+      <span id="version" class="version"></span>
+    </div>
+  </footer>
+
+  <div id="shortcuts" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+      <div class="modal-head">
+        <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+        <button id="close-shortcuts" class="tb-btn icon small" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.2 3 3.8 3.8L11.8 3 13 4.2 9.2 8l3.8 3.8-1.2 1.2L8 9.2 4.2 13 3 11.8 6.8 8 3 4.2z"/></svg>
+        </button>
+      </div>
+      <div class="shortcut-groups">
+        <section>
+          <h3>Navigate</h3>
+          <dl>
+            <dt><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>Move between tabs</dd>
+            <dt><kbd>↩</kbd></dt><dd>Open tab · search Google if nothing matches</dd>
+            <dt><kbd>esc</kbd></dt><dd>Close sheet · clear search · go back</dd>
+            <dt>Type</dt><dd>Search tabs</dd>
+          </dl>
+        </section>
+        <section>
+          <h3>Tabs</h3>
+          <dl>
+            <dt><kbd>⇧</kbd><kbd>⌫</kbd></dt><dd>Close tab</dd>
+            <dt><kbd>⌥</kbd><kbd>S</kbd></dt><dd>Star / unstar</dd>
+            <dt><kbd>⇧</kbd><kbd>↩</kbd></dt><dd>Select for bulk actions</dd>
+          </dl>
+        </section>
+        <section>
+          <h3>Panels</h3>
+          <dl>
+            <dt><kbd>⌥</kbd><kbd>H</kbd></dt><dd>History and recently closed</dd>
+            <dt><kbd>⌥</kbd><kbd>D</kbd></dt><dd>Downloads</dd>
+            <dt><kbd class="mod">⌘</kbd><kbd>K</kbd></dt><dd>This list</dd>
+          </dl>
+        </section>
+        <section>
+          <h3>Anywhere in the browser</h3>
+          <dl>
+            <dt><kbd>⌥</kbd><kbd>T</kbd></dt><dd>Go to Tabie from any site</dd>
+            <dt><kbd>⌥</kbd><kbd>⇧</kbd><kbd>←</kbd></dt><dd>Previous tab</dd>
+            <dt><kbd>⌥</kbd><kbd>⇧</kbd><kbd>P</kbd></dt><dd>Side panel</dd>
+          </dl>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm" class="modal-backdrop confirm-backdrop" hidden>
+    <div class="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+      <div id="confirm-icon" class="confirm-icon" aria-hidden="true"></div>
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-body"></p>
+      <div class="confirm-buttons">
+        <button id="confirm-cancel" class="push-btn">Cancel</button>
+        <button id="confirm-ok" class="primary-btn">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="popup.js"></script>
+  <script src="onboarding.js"></script> <!-- onboarding tour: optional, delete with onboarding.css -->
+</body>
+</html>

@@ -1,0 +1,188 @@
+/* Tabie onboarding tour. Used only by onboarding.js; safe to delete together. */
+
+.ob-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  animation: ob-fade 0.25s ease;
+}
+
+/* Blocks clicks behind the tour. Dims the whole screen on the welcome step;
+   on other steps the spotlight's shadow does the dimming. */
+.ob-shade { position: absolute; inset: 0; }
+.ob-shade.full { background: rgba(12, 12, 16, 0.62); }
+
+.ob-spot {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(12, 12, 16, 0.58);
+  pointer-events: none;
+  transition: left 0.35s cubic-bezier(0.32, 0.72, 0, 1), top 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+    width 0.35s cubic-bezier(0.32, 0.72, 0, 1), height 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Hand-drawn ink: white pen strokes that draw themselves */
+.ob-ink { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.ob-stroke {
+  fill: none;
+  stroke: #fffdf6;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+.ob-stroke.draw { animation: ob-draw 0.7s cubic-bezier(0.55, 0.1, 0.35, 1) both; }
+.ob-stroke.delay1 { animation-delay: 0.45s; animation-duration: 0.55s; }
+.ob-stroke.delay2 { animation-delay: 0.95s; animation-duration: 0.2s; }
+
+/* The note: handwritten title, plain body, compact controls */
+.ob-note {
+  position: absolute;
+  width: 380px;
+  color: #fffdf6;
+  animation: ob-rise 0.4s 0.15s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.ob-title {
+  font: 600 36px/1.12 "Bradley Hand", "Chalkboard SE", "Segoe Print", "Comic Sans MS", cursive;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transform: rotate(-1.5deg);
+  transform-origin: left center;
+}
+.ob-body {
+  margin-top: 10px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: rgba(255, 253, 246, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.ob-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+.ob-dots { display: flex; gap: 5px; }
+.ob-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); transition: background 0.2s, transform 0.2s; }
+.ob-dot.on { background: #fff; transform: scale(1.25); }
+.ob-buttons { display: flex; gap: 6px; }
+.ob-btn {
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  font: 600 14.5px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.ob-btn:active { transform: scale(0.96); }
+.ob-btn.ghost { background: #3a3a3c; color: #fff; }
+.ob-btn.ghost:hover { background: #48484a; }
+.ob-btn.primary { background: #fff; color: #1d1d1f; }
+.ob-btn.primary:hover { background: #f2f2f4; }
+.ob-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+@keyframes ob-draw { to { stroke-dashoffset: 0; } }
+@keyframes ob-fade { from { opacity: 0; } }
+@keyframes ob-rise { from { opacity: 0; transform: translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ob-root, .ob-note, .ob-stroke.draw { animation: none; }
+  .ob-stroke { stroke-dashoffset: 0 !important; }
+  .ob-spot { transition: none; }
+}
+
+.ob-note.welcome { text-align: center; }
+.ob-note.welcome .ob-title { font-size: 44px; transform: none; }
+.ob-note.welcome .ob-bar { flex-direction: column; gap: 16px; }
+
+/* Paper card behind the note, so the text is easy to read on any page */
+.ob-note {
+  padding: 18px 20px 16px;
+  border-radius: 6px 10px 8px 12px; /* slightly uneven, like cut paper */
+  color: #2b2a26;
+  background:
+    repeating-linear-gradient(transparent 0 27px, rgba(80, 110, 160, 0.10) 27px 28px), /* faint ruled lines */
+    radial-gradient(120% 90% at 20% 0%, #fffef8, #fbf6e6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 14px 34px rgba(0, 0, 0, 0.28);
+  transform: rotate(-0.6deg);
+}
+.ob-note.welcome { transform: none; }
+.ob-title { color: #1f1e1b; text-shadow: none; }
+.ob-body { color: #3d3b35; text-shadow: none; }
+.ob-dot { background: rgba(43, 42, 38, 0.22); }
+.ob-dot.on { background: #2b2a26; }
+.ob-btn.ghost { background: rgba(43, 42, 38, 0.08); color: #2b2a26; }
+.ob-btn.ghost:hover { background: rgba(43, 42, 38, 0.14); }
+.ob-btn.primary { background: #1f1e1b; color: #fffdf6; }
+.ob-btn.primary:hover { background: #33312c; }
+.ob-btn:focus-visible { outline-color: #1f1e1b; }
+
+/* Note looks like a torn-off piece of paper held on with tape, not a neat card.
+   The paper is a pseudo-element clipped to a torn outline; the shadow comes from
+   a filter on the note, so it follows the torn edge. */
+.ob-note {
+  padding: 22px 22px 24px;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.16)) drop-shadow(0 12px 22px rgba(0, 0, 0, 0.3));
+}
+.ob-note::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(transparent 0 27px, rgba(80, 110, 160, 0.09) 27px 28px),
+    radial-gradient(130% 100% at 15% 0%, #fffef7, #f8f1dc);
+  clip-path: polygon(0% 0.5%, 10% 0.2%, 20% 1.0%, 30% 0.1%, 40% 0.9%, 50% 0.6%, 60% 0.1%, 70% 0.8%, 80% 0.1%, 90% 0.7%, 100% 0.1%, 99.9% 8%, 99.5% 20%, 99.0% 32%, 99.9% 44%, 99.7% 56%, 99.2% 68%, 98.9% 80%, 99.3% 92%, 100% 98.2%, 95.8% 99.8%, 91.9% 98.7%, 89.4% 99.5%, 86.6% 96.3%, 84.1% 97.4%, 80.6% 98.3%, 77.3% 99.7%, 75.0% 99.1%, 71.4% 98.1%, 68.6% 97.4%, 65.5% 98.7%, 61.7% 96.9%, 59.0% 97.4%, 55.7% 96.1%, 52.1% 98.7%, 47.9% 99.5%, 44.9% 96.6%, 42.4% 97.8%, 40.1% 97.0%, 36.4% 97.4%, 32.4% 98.6%, 28.8% 97.3%, 25.5% 97.9%, 21.6% 95.7%, 18.5% 97.0%, 16.1% 96.8%, 12.6% 95.5%, 8.8% 98.7%, 5.8% 97.0%, 3.6% 97.9%, 1.0% 99.5%, 0% 97.5%, 0.1% 90%, 0.2% 76%, 0.4% 62%, 0.9% 48%, 0.1% 34%, 0.4% 20%, 0.5% 6%);
+}
+/* A strip of tape across the top */
+.ob-note::after {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 92px;
+  height: 24px;
+  margin-left: -46px;
+  background: rgba(255, 244, 196, 0.72);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transform: rotate(-3deg);
+  clip-path: polygon(0 8%, 6% 0, 12% 10%, 20% 2%, 30% 9%, 42% 0, 55% 8%, 66% 1%, 78% 9%, 88% 2%, 100% 7%, 98% 92%, 90% 100%, 80% 91%, 68% 99%, 55% 92%, 42% 100%, 30% 92%, 18% 99%, 8% 91%, 1% 98%);
+}
+.ob-note.welcome::after { transform: rotate(2deg); }
+
+/* Tabie logo on the welcome note */
+.ob-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 12px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
+  animation: ob-pop 0.5s 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes ob-pop { from { opacity: 0; transform: scale(0.6) rotate(-8deg); } }
+@media (prefers-reduced-motion: reduce) { .ob-logo { animation: none; } }
+
+/* Leaving the tour: fade out rather than disappear */
+.ob-root.ob-leaving { opacity: 0; transition: opacity 0.26s ease; pointer-events: none; }
+
+/* Final screen: falling confetti behind the note */
+.ob-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ob-confetti i {
+  position: absolute;
+  top: -24px;
+  display: block;
+  opacity: 0.95;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12);
+  animation-name: ob-confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.45, 1);
+  animation-fill-mode: both;
+}
+@keyframes ob-confetti-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate3d(var(--drift), 110vh, 0) rotate(var(--spin)); opacity: 0; }
+}
+.ob-root .ob-note { z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .ob-confetti { display: none; } }

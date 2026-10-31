@@ -1,0 +1,70 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "manifest_version": 3,
+  "name": "Tabie",
+  "short_name": "Tabie",
+  "version": "1.6.1",
+  "description": "Browse anything. Find, switch and tidy your tabs with search, previews and keyboard shortcuts.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "unlimitedStorage",
+    "sessions",
+    "sidePanel",
+    "downloads",
+    "downloads.open",
+    "bookmarks",
+    "favicon",
+    "history"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open Tabie (⌥T / Alt+T)",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "popup.html?panel"
+  },
+  "chrome_url_overrides": {
+    "newtab": "popup.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+T",
+        "mac": "Alt+T"
+      },
+      "description": "Go to Tabie (from any site)"
+    },
+    "previous-tab": {
+      "suggested_key": {
+        "default": "Alt+Shift+Left",
+        "mac": "Alt+Shift+Left"
+      },
+      "description": "Jump to the previously used tab"
+    },
+    "open-side-panel": {
+      "suggested_key": {
+        "default": "Alt+Shift+P",
+        "mac": "Alt+Shift+P"
+      },
+      "description": "Open Tabie in the side panel"
+    }
+  }
+}
