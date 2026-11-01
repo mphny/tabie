@@ -1,15 +1,16 @@
 # Tabie
 
-> Browse anything. Find, switch and tidy your tabs with search, previews and keyboard shortcuts.
+> Browse anything, group and organize your tabs
 
-Tabie is a powerful browser extension that helps you manage your tabs efficiently. Whether you have 10 tabs or 1000+, Tabie makes it easy to find, organize, and clean up your browsing session.
+Tabie is a browser extension that helps you manage your tabs efficiently. Whether you have 10 tabs or 1000+, Tabie makes it easy to find, organize, and clean up your browsing session.
 
 ## Features
 
-- **Universal Search**: Find open tabs, closed tabs, downloads, or search the web from one search bar
 - **Tab Previews**: Visual thumbnails of your tabs for quick identification
+- **Create, Store, and Restore Tab Groups ** easily Group tabs and save groups to drive as well as restore
 - **History & Recently Closed**: Quick access to your browsing history and tabs you've recently closed
 - **Downloads Manager**: Track and manage all your downloads in one place
+- **Universal Search**: Find open tabs, closed tabs, downloads, or search the web from one search bar
 - **Shortcuts**: Star your favorite tabs for quick access
 - **Bulk Actions**: Select multiple tabs to close them or move them to a new window
 - **Smart Sleep**: Unload tabs you haven't used in 30 minutes to free memory (they reload when you open them)
