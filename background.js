@@ -63,6 +63,7 @@ async function captureActive(windowId) {
   try {
     const [tab] = await api.tabs.query({ active: true, windowId });
     if (!tab || tab.status !== "complete" || !/^(https?|file):/.test(tab.url || "")) return;
+    if (tab.incognito) return;
     const shot = await api.tabs.captureVisibleTab(windowId, { format: "jpeg", quality: 80 });
     // Make sure the user didn't switch tabs while we were capturing.
     const [still] = await api.tabs.query({ active: true, windowId });
@@ -90,7 +91,7 @@ function scheduleCapture(windowId, delay = 700) {
 async function pruneThumbs() {
   capturesSincePrune = 0;
   const all = await api.storage.local.get(null);
-  const open = new Set((await api.tabs.query({})).map((t) => thumbKey(t.url)));
+  const open = new Set((await api.tabs.query({})).filter((t) => !t.incognito).map((t) => thumbKey(t.url)));
   // Shortcuts (bookmarks in the Tabie folder) keep their preview while closed.
   try {
     if (all.shortcutsFolderId) {
