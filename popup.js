@@ -233,12 +233,19 @@ function fuzzy(title, terms) {
 }
 
 function highlight(text, terms) {
-  const safe = escapeHtml(text);
-  if (!terms.length) return safe;
-  const pattern = terms
-    .map((t) => escapeHtml(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
-  return safe.replace(new RegExp(`(${pattern})`, "gi"), "<mark>$1</mark>");
+  const str = String(text ?? "");
+  if (!terms.length) return escapeHtml(str);
+  const pattern = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  // Check the raw text   and escape the pieces.  This is to make sure that escapeted text
+  // does not get included like &amp;  or @lt;
+  let out = "";
+  let last = 0;
+  for (const m of str.matchAll(new RegExp(pattern, "gi"))) {
+    if (!m[0]) continue;
+    out += `${escapeHtml(str.slice(last, m.index))}<mark>${escapeHtml(m[0])}</mark>`;
+    last = m.index + m[0].length;
+  }
+  return out + escapeHtml(str.slice(last));
 }
 
 // ---------- data ----------
@@ -1534,7 +1541,9 @@ async function sortBySite() {
   if (!ok) return;
   for (const win of state.windows) {
     const tabs = state.tabs.filter((t) => t.windowId === win.id && !t.pinned);
-    const pinnedCount = state.tabs.filter((t) => t.windowId === win.id && t.pinned).length;
+    // Ask the browser: state.tabs leaves out Tabie's own pinned tab, which
+    // still occupies the first slot and would shift every target index by one.
+    const pinnedCount = (await api.tabs.query({ windowId: win.id, pinned: true })).length;
     const sorted = [...tabs].sort((a, b) =>
       hostOf(a.url).localeCompare(hostOf(b.url)) || (a.title || "").localeCompare(b.title || ""));
     for (let i = 0; i < sorted.length; i++) {
@@ -1703,6 +1712,21 @@ const COLOR_HEX = {
   orange: "#FBBC04"
 };
 
+// downloads.download() resolves when the download starts, not when the browser
+// has read the blob, so the URL must stay alive until the download finishes.
+function revokeWhenDone(downloadId, url) {
+  const done = () => {
+    clearTimeout(timer);
+    api.downloads.onChanged.removeListener(onChange);
+    URL.revokeObjectURL(url);
+  };
+  const onChange = (delta) => {
+    if (delta.id === downloadId && delta.state && delta.state.current !== "in_progress") done();
+  };
+  const timer = setTimeout(done, 10 * 60 * 1000); // safety net
+  api.downloads.onChanged.addListener(onChange);
+}
+
 async function exportTabGroups() {
   const includePreviews = $("#export-include-previews").checked;
   const selectedGroupIds = [...document.querySelectorAll("#export-groups-list input:checked")]
@@ -1803,12 +1827,22 @@ async function exportTabGroups() {
   // Download single JSON file
   const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const jsonUrl = URL.createObjectURL(jsonBlob);
-  await api.downloads.download({
-    url: jsonUrl,
-    filename: filename,
-    saveAs: true
-  });
-  URL.revokeObjectURL(jsonUrl);
+  try {
+    const downloadId = await api.downloads.download({
+      url: jsonUrl,
+      filename: filename,
+      saveAs: true
+    });
+    revokeWhenDone(downloadId, jsonUrl);
+  } catch (err) {
+    URL.revokeObjectURL(jsonUrl);
+    // Closing the Save dialog isn't an error: keep the dialog open to try again.
+    if (!/cancel/i.test(String(err?.message ?? err))) {
+      console.error("Failed to export groups:", err);
+      toast("Couldn't export the groups");
+    }
+    return;
+  }
 
   hideExportDialog();
   toast(`Exported ${plural(selectedGroups.length, "group")} to a single file`);
@@ -2293,6 +2327,7 @@ document.addEventListener("keydown", (e) => {
     }
     return;
   }
+  if (document.querySelector(".modal-backdrop:not([hidden])")) return; // the group dialog handles its own keys
   if (openDropdown) return; // the open menu handles its own keys
   if (suggest.visible && !e.metaKey && !e.ctrlKey && !e.altKey) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -2430,12 +2465,24 @@ listEl.addEventListener("click", async (e) => {
   const sectionBtn = t.closest("[data-section-action]");
   if (sectionBtn) {
     const { sectionAction, arg } = sectionBtn.dataset;
-    const ids = state.tabs.filter((x) => hostOf(x.url) === arg).map((x) => x.id);
+    // Only the tabs listed under this heading (a search narrows the group).
+    const shown = state.items
+      .filter((i) => i.kind === "tab")
+      .map((i) => state.tabs.find((x) => x.id === i.id))
+      .filter((x) => x && hostOf(x.url) === arg);
     if (sectionAction === "close-site") {
+      const ids = shown.filter((x) => !x.pinned).map((x) => x.id);
+      if (!ids.length) return toast("No tabs to close here (pinned tabs are kept)");
+      const ok = await confirmAction({
+        icon: ICON.trash,
+        title: `Close ${plural(ids.length, "tab")} from ${arg}?`,
+        body: "Pinned tabs are kept, and you can reopen these from Recently Closed.",
+      });
+      if (!ok) return;
       await closeTabs(ids);
       toast(`Closed ${plural(ids.length, "tab")} from ${arg}`);
     } else if (sectionAction === "window-site") {
-      await moveToNewWindow(ids);
+      await moveToNewWindow(shown.map((x) => x.id));
     } else if (sectionAction === "merge-window") {
       await mergeWindows(Number(arg));
     }
