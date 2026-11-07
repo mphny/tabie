@@ -87,6 +87,7 @@ const state = {
   items: [], // navigable entries in render order: { kind: "tab" | "closed" | "search", id }
   currentWindowId: null,
   currentTabId: null,
+  mergeableWindowIds: new Set(), // normal windows in the same privacy mode as this one
   selfTabId: null, // Tabie's own tab; never listed, so nothing can close it
 };
 
@@ -263,6 +264,12 @@ async function loadTabs() {
   state.tabs = tabs.filter((t) => t.id !== state.selfTabId && !isSelf(t.url));
   state.windows = windows.filter((w) => w.type === "normal" || w.type === undefined);
   state.currentWindowId = current.id;
+  // Tabs can't move between window types (popup) or privacy modes (incognito);
+  // merge only ever pulls from windows that accept them.
+  state.mergeableWindowIds = new Set(
+    windows
+      .filter((w) => (w.type === "normal" || w.type === undefined) && w.incognito === current.incognito)
+      .map((w) => w.id));
   // When Tabie itself is the active tab, "current" means the tab you came from.
   const inWindow = state.tabs.filter((t) => t.windowId === current.id);
   state.currentTabId = (inWindow.find((t) => t.active) ??
@@ -809,6 +816,12 @@ function historyResultRow(h) {
 
 const anySheetOpen = () => state.historyOpen || state.downloadsOpen || state.starsOpen;
 
+// When a sheet closes while it holds focus, move focus to its toolbar toggle
+// first — aria-hidden/inert must not hide the focused element.
+function moveFocusOut(sheet, toggle) {
+  if (sheet.contains(document.activeElement)) toggle.focus();
+}
+
 // Open one sheet and close the others; the backdrop shows while any is open.
 function closeOtherSheets(except) {
   if (except !== "history" && state.historyOpen) setHistory(false);
@@ -818,6 +831,7 @@ function closeOtherSheets(except) {
 
 function setHistory(open) {
   if (open) closeOtherSheets("history");
+  else moveFocusOut($("#history"), $("#toggle-history"));
   state.historyOpen = open;
   const sheet = $("#history");
   sheet.classList.toggle("open", open);
@@ -1013,6 +1027,7 @@ async function downloadAction(id, action) {
 
 function setDownloads(open) {
   if (open) closeOtherSheets("downloads");
+  else moveFocusOut($("#downloads"), $("#toggle-downloads"));
   state.downloadsOpen = open;
   const sheet = $("#downloads");
   sheet.classList.toggle("open", open);
@@ -1029,6 +1044,7 @@ function setDownloads(open) {
 
 function setStars(open) {
   if (open) closeOtherSheets("stars");
+  else moveFocusOut($("#stars"), $("#starred"));
   state.starsOpen = open;
   const sheet = $("#stars");
   sheet.classList.toggle("open", open);
@@ -1562,7 +1578,8 @@ async function moveToWindow(tabIds, windowId) {
 
 async function mergeWindows(onlyWindowId) {
   const ids = state.tabs
-    .filter((t) => t.windowId !== state.currentWindowId && (!onlyWindowId || t.windowId === onlyWindowId))
+    .filter((t) => t.windowId !== state.currentWindowId && state.mergeableWindowIds.has(t.windowId)
+      && (!onlyWindowId || t.windowId === onlyWindowId))
     .map((t) => t.id);
   if (!ids.length) return toast("Only one window open");
   if (!onlyWindowId) {
@@ -1573,16 +1590,26 @@ async function mergeWindows(onlyWindowId) {
     });
     if (!ok) return;
   }
-  const n = await moveToWindow(ids, state.currentWindowId);
-  await refresh();
-  toast(`Moved ${plural(n, "tab")} into this window`);
+  try {
+    const n = await moveToWindow(ids, state.currentWindowId);
+    await refresh();
+    toast(`Moved ${plural(n, "tab")} into this window`);
+  } catch {
+    toast("Couldn't merge the windows");
+  }
 }
 
 async function moveToNewWindow(ids) {
   if (!ids.length) return;
   const [first, ...rest] = ids;
-  const win = await api.windows.create({ tabId: first, focused: false });
-  if (rest.length) await api.tabs.move(rest, { windowId: win.id, index: -1 });
+  try {
+    const win = await api.windows.create({ tabId: first, focused: false });
+    if (rest.length) await api.tabs.move(rest, { windowId: win.id, index: -1 });
+  } catch {
+    toast("Couldn't move the tabs");
+    await refresh();
+    return;
+  }
   state.selected.clear();
   await refresh();
   toast(`Moved ${plural(ids.length, "tab")} to a new window`);
@@ -1727,6 +1754,42 @@ function revokeWhenDone(downloadId, url) {
   api.downloads.onChanged.addListener(onChange);
 }
 
+// Wait for a download's real outcome. Chrome resolves downloads.download()
+// as soon as the download starts — canceling the Save dialog only shows up
+// later as an onChanged "interrupted"/"USER_CANCELED" — while Firefox
+// resolves after the dialog and may already be finished. Resolves to
+// "complete", "canceled", "failed" or "timeout".
+function downloadOutcome(downloadId) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      api.downloads.onChanged.removeListener(onChange);
+      resolve(result);
+    };
+    const classify = (item) =>
+      item?.state === "complete" ? "complete"
+      : item?.state === "interrupted" ? (item.error === "USER_CANCELED" ? "canceled" : "failed")
+      : null;
+    // Chrome deltas use {current, previous} objects; Firefox may use strings.
+    const pick = (v) => (typeof v === "string" ? v : v?.current);
+    const onChange = (delta) => {
+      if (delta.id !== downloadId) return;
+      const result = classify({ state: pick(delta.state), error: pick(delta.error) });
+      if (result) finish(result);
+    };
+    const timer = setTimeout(() => finish("timeout"), 10 * 60 * 1000);
+    api.downloads.onChanged.addListener(onChange);
+    // The download may already be finished before the listener was attached.
+    Promise.resolve(api.downloads.search?.({ orderBy: ["-startTime"] })).then((items) => {
+      const result = classify(items?.find((d) => d.id === downloadId));
+      if (result) finish(result);
+    }).catch(() => {});
+  });
+}
+
 async function exportTabGroups() {
   const includePreviews = $("#export-include-previews").checked;
   const selectedGroupIds = [...document.querySelectorAll("#export-groups-list input:checked")]
@@ -1827,8 +1890,9 @@ async function exportTabGroups() {
   // Download single JSON file
   const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const jsonUrl = URL.createObjectURL(jsonBlob);
+  let downloadId;
   try {
-    const downloadId = await api.downloads.download({
+    downloadId = await api.downloads.download({
       url: jsonUrl,
       filename: filename,
       saveAs: true
@@ -1836,11 +1900,20 @@ async function exportTabGroups() {
     revokeWhenDone(downloadId, jsonUrl);
   } catch (err) {
     URL.revokeObjectURL(jsonUrl);
-    // Closing the Save dialog isn't an error: keep the dialog open to try again.
+    // Firefox rejects when the Save dialog is canceled: keep it open to try again.
     if (!/cancel/i.test(String(err?.message ?? err))) {
       console.error("Failed to export groups:", err);
       toast("Couldn't export the groups");
     }
+    return;
+  }
+
+  // Chrome resolves before the Save dialog is answered; wait for the outcome
+  // so canceling doesn't look like a successful export.
+  const outcome = await downloadOutcome(downloadId);
+  if (outcome === "canceled") return;
+  if (outcome !== "complete") {
+    toast("Couldn't export the groups");
     return;
   }
 
@@ -1902,18 +1975,21 @@ function renderImportView() {
 
   for (const group of importedData.groups) {
     const groupTabs = group.tabs || [];
+    // The file is untrusted: only allow a plain hex colour and data: image
+    // previews, so markup or remote URLs can't be injected into the page.
+    const groupColor = /^#[0-9a-fA-F]{3,8}$/.test(group.colorHex || "") ? group.colorHex : "#9AA0A6";
     const groupHtml = `
       <div class="import-group-block">
         <div class="import-group-header">
-          <span class="import-group-color" style="background: ${group.colorHex || "#9AA0A6"}"></span>
+          <span class="import-group-color" style="background: ${groupColor}"></span>
           <span class="import-group-title">${escapeHtml(group.title || "Untitled")}</span>
           <span style="font-size: 11px; color: var(--secondary); margin-left: auto;">${groupTabs.length} tabs</span>
         </div>
         <div class="import-group-tabs">
           ${groupTabs.map(tab => {
             const previewData = tab.previewFile && importedData.previews ? importedData.previews[tab.previewFile] : null;
-            const previewHtml = previewData
-              ? `<img src="${previewData}" alt="">`
+            const previewHtml = typeof previewData === "string" && /^data:image\//i.test(previewData)
+              ? `<img src="${escapeHtml(previewData)}" alt="">`
               : `<span class="placeholder">No preview</span>`;
 
             return `
@@ -1933,19 +2009,49 @@ function renderImportView() {
   displayEl.innerHTML = html;
 }
 
+// Colors Chrome's tabGroups API accepts; anything else makes update() throw.
+const TAB_GROUP_COLORS = new Set(["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan", "orange"]);
+const MAX_IMPORT_TABS = 1000;
+
+// The import file is untrusted: only web URLs can be opened.
+function importableUrl(url) {
+  try {
+    const u = new URL(String(url));
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 async function importToBrowser() {
   if (!importedData || !api.tabGroups) {
     toast("Tab groups aren't available in this browser");
     return;
   }
 
-  try {
-    let totalTabs = 0;
-    let totalGroups = 0;
+  let totalTabs = 0;
+  let totalGroups = 0;
+  let skipped = 0;
+  let failedGroups = 0;
+  let budget = MAX_IMPORT_TABS;
 
-    for (const group of importedData.groups) {
-      const tabs = group.tabs || [];
-      if (tabs.length === 0) continue;
+  // Each group is isolated: one bad entry can't abort the rest or leave
+  // already-created tabs stranded halfway through the file.
+  for (const group of importedData.groups) {
+    if (budget <= 0) break;
+    try {
+      const rawTabs = Array.isArray(group.tabs) ? group.tabs : [];
+      const tabs = [];
+      for (const tab of rawTabs) {
+        const url = importableUrl(tab?.url);
+        if (url && budget > 0) {
+          tabs.push({ ...tab, url });
+          budget--;
+        } else {
+          skipped++;
+        }
+      }
+      if (!tabs.length) continue;
 
       // Create tabs for this group
       const createdTabs = [];
@@ -1959,27 +2065,30 @@ async function importToBrowser() {
         }
       }
 
-      if (createdTabs.length > 0) {
-        // Group the created tabs
-        const groupId = await api.tabs.group({ tabIds: createdTabs });
-        if (groupId) {
-          // Set group title and color
-          await api.tabGroups.update(groupId, {
-            title: group.title || "Imported Group",
-            color: group.color || "grey"
-          });
-          totalGroups++;
-        }
-      }
-    }
+      if (createdTabs.length === 0) continue;
 
-    hideImportView();
-    toast(`Imported ${totalGroups} group(s) with ${totalTabs} tab(s)`);
-    await refresh();
-  } catch (err) {
-    console.error("Failed to import:", err);
-    toast("Couldn't import the groups");
+      // Group the created tabs
+      const groupId = await api.tabs.group({ tabIds: createdTabs });
+      if (groupId) {
+        // Set group title and color
+        await api.tabGroups.update(groupId, {
+          title: typeof group.title === "string" && group.title.trim() ? group.title : "Imported Group",
+          color: TAB_GROUP_COLORS.has(group.color) ? group.color : "grey"
+        });
+        totalGroups++;
+      }
+    } catch (err) {
+      failedGroups++;
+      console.error("Failed to import group:", err);
+    }
   }
+
+  hideImportView();
+  let msg = `Imported ${totalGroups} group(s) with ${totalTabs} tab(s)`;
+  if (skipped) msg += `, skipped ${skipped} invalid or over-limit`;
+  if (failedGroups) msg += `, ${failedGroups} group(s) failed`;
+  toast(msg);
+  await refresh();
 }
 
 $("#act-import").addEventListener("click", openImportFilePicker);
@@ -2699,6 +2808,20 @@ if (!inPanel && (api.sidePanel?.open || api.sidebarAction?.open)) {
       ? api.sidePanel.open({ windowId: state.currentWindowId })
       : api.sidebarAction.open();
     opening.catch(() => toast("Couldn't open the side panel"));
+  });
+}
+
+// Inside the side panel, offer a button that dismisses it:
+// chrome.sidePanel.close (Chrome/Edge 141+) or browser.sidebarAction.close
+// (Firefox). The button stays hidden where neither exists.
+const closePanelBtn = $("#close-panel");
+const closePanel = api.sidePanel?.close
+  ? () => api.sidePanel.close({ windowId: state.currentWindowId })
+  : api.sidebarAction?.close;
+if (inPanel && closePanel) {
+  closePanelBtn.hidden = false;
+  closePanelBtn.addEventListener("click", () => {
+    closePanel()?.catch?.(() => toast("Couldn't close the side panel"));
   });
 }
 

@@ -154,12 +154,18 @@ async function openManager(windowId) {
   }
 }
 
-// Move every Tabie tab back to the first position of its window.
+// Move the first Tabie tab of each window back to the first position. Extra
+// manager tabs are only pinned: moving them too would just trade places with
+// the first one and retrigger this via onMoved forever.
 async function keepManagerFirst(attempt = 0) {
   try {
     const tabs = (await api.tabs.query({})).filter(isManager);
-    for (const t of tabs) {
+    const firstPerWindow = new Map();
+    for (const t of [...tabs].sort((a, b) => a.index - b.index)) {
+      if (!firstPerWindow.has(t.windowId)) firstPerWindow.set(t.windowId, t);
       if (!t.pinned) await api.tabs.update(t.id, { pinned: true });
+    }
+    for (const t of firstPerWindow.values()) {
       if (t.index !== 0) await api.tabs.move(t.id, { index: 0 });
     }
   } catch {

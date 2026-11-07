@@ -4,7 +4,7 @@
   "manifest_version": 3,
   "name": "Tabie",
   "short_name": "Tabie",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Browse anything. Find, switch and tidy your tabs with search, previews and keyboard shortcuts.",
   "permissions": [
     "tabs",
