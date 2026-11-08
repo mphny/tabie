@@ -7,7 +7,7 @@ Tabie is a browser extension that helps you manage your tabs efficiently. Whethe
 ## Features
 
 - **Tab Previews**: Visual thumbnails of your tabs for quick identification
-- **Create, Store, and Restore Tab Groups ** easily Group tabs and save groups to drive as well as restore
+- **Create, Store, and Restore Tab Groups** easily Group tabs and save groups to drive as well as restore
 - **History & Recently Closed**: Quick access to your browsing history and tabs you've recently closed
 - **Downloads Manager**: Track and manage all your downloads in one place
 - **Universal Search**: Find open tabs, closed tabs, downloads, or search the web from one search bar
@@ -146,12 +146,22 @@ Tabie is built with vanilla JavaScript and CSS. No build process is required —
 
 ## License
 
-This version of Tabie is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
+This version of Tabie is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 I was not able to find the owner/license for the original tabie
 
 ## Privacy
 
-Tabie runs entirely locally in your browser. No data is sent to external servers. Tab previews and preferences are stored in your browser's local storage.
+Tabie runs locally in your browser. There is no telemetry, and Tabie doesn’t store your data on any external server. 
+Tab previews, recent searches and preferences are stored in your browser’s local storage.
+
+Tabie only contacts other websites in these cases:
+- Search suggestions. When what you type in the search box matches none of your tabs, Tabie asks your chosen search engine for suggestions, so that engine receives the text you typed. This is Google by default, or Bing or DuckDuckGo if you select one of them. If ChatGPT or Gemini is your default, suggestions still come from Google.
+- Searches and prompts you send. Pressing Enter on a web search or an “Ask…” suggestion opens that site in a new tab with your text in the URL.
+- Site icons. The icon next to a tab is loaded from that tab’s own website, as your browser’s tab strip does. In browsers without a local favicon cache (such as Firefox), the icons for AI assistant suggestions are loaded from the assistants’ websites.
+
+Tabie makes no other network requests.
+
+
 
 ## Contributing
 

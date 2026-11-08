@@ -187,7 +187,12 @@ api.tabs.onUpdated.addListener((_id, info, tab) => {
   if ("pinned" in info || (info.url && isManager(tab))) scheduleKeepFirst();
 });
 
-api.action.onClicked.addListener((tab) => openManager(tab?.windowId));
+// Serialize opens: two quick clicks would otherwise both query before either
+// create lands and end up with two Tabie tabs in the window.
+let managerQueue = Promise.resolve();
+api.action.onClicked.addListener((tab) => {
+  managerQueue = managerQueue.then(() => openManager(tab?.windowId)).catch(() => {});
+});
 
 api.commands.onCommand.addListener((command, tab) => {
   if (command === "previous-tab") jumpToPreviousTab();

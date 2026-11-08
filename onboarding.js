@@ -26,7 +26,7 @@
     {
       target: "#q",
       title: "Browse anything",
-      body: "Find open tabs, closed tabs and downloads, or search Google.",
+      body: "Find open tabs, closed tabs and downloads, or search the web or ask an AI.",
     },
     {
       target: "#toggle-history",
@@ -46,7 +46,19 @@
     {
       target: ".statusbar .actions",
       title: "One-click tidy",
-      body: "Super Clean duplicates and old tabs, rest idle tabs, or let Magic Tabs sort things out.",
+      body: "Super Clean duplicates and old tabs, rest idle tabs, merge windows, or let Magic Tabs sort things out.",
+    },
+    {
+      // The Create Group button only exists once tabs are selected, so point at
+      // a tab. Skipped automatically when no tabs are listed.
+      target: "[data-tab]",
+      title: "Make tab groups",
+      body: "Tick the checkbox on a few tabs (or Shift-click them), then press Create Group to name and color a tab group.",
+    },
+    {
+      target: "#act-export",
+      title: "Save and restore groups",
+      body: "Export your tab groups to a file, and bring them back any time with Import Groups.",
     },
     {
       target: "#show-shortcuts",

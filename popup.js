@@ -2436,7 +2436,7 @@ document.addEventListener("keydown", (e) => {
     }
     return;
   }
-  if (document.querySelector(".modal-backdrop:not([hidden])")) return; // the group dialog handles its own keys
+  if (document.querySelector(".modal-backdrop:not([hidden]):not(#shortcuts)")) return; // dialogs handle their own keys; #shortcuts is handled below
   if (openDropdown) return; // the open menu handles its own keys
   if (suggest.visible && !e.metaKey && !e.ctrlKey && !e.altKey) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
